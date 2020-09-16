@@ -1,0 +1,37 @@
+pipeline {
+  environment {
+    registry = "nrizk83/alpine-base-image"
+    registryCredential = 'docker-hub'
+    dockerImage = ''
+  }
+  agent any
+
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git 'https://github.com/nci-snow-cicd/sonarcube.git'
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+    stage('Run docker image') {
+      steps{
+        sh "docker run -id --name SonarCubeImage $registry:$BUILD_NUMBER /bin/bash"
+      }
+    }
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+  }
+}
